@@ -1,0 +1,21 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. :root는 기본 모드(라이트 모드)의 변수를 정의합니다. */
+:root {
+  --color-text-base: #2d3748; /* 어두운 회색 */
+  --color-background: #ffffff; /* 흰색 */
+  --color-primary: #3b82f6; /* 파란색 */
+  --color-secondary: #6b7280; /* 회색 */
+}
+
+/* 2. .dark 선택자는 다크 모드일 때 적용될 변수를 정의합니다. */
+.dark {
+  --color-text-base: #edf2f7; /* 밝은 회색 */
+  --color-background: #1a202c; /* 아주 어두운 회색 */
+  --color-primary: #60a5fa; /* 밝은 파란색 */
+  --color-secondary: #9ca3af; /* 밝은 회색 */
+}
