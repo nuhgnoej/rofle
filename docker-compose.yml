@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: odineyes # 원하는 유저명으로 변경
+      POSTGRES_PASSWORD: password # 원하는 비밀번호로 변경
+      POSTGRES_DB: financial_planner # 원하는 DB 이름으로 변경
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

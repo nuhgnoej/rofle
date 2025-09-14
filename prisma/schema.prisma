@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enum: 소비 유형을 위한 열거형 ---
+enum ConsumptionType {
+  AMOUNT
+  PERCENTAGE
+}
+
+// --- 메인 프로필 모델 ---
+model FinancialProfile {
+  id                         String    @id @default(cuid())
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  
+  // 미래 계획
+  dob                        DateTime? // 생년월일
+  retirementAge              Int?      // 정년
+  peakWagePeriod             Int?      // 임금피크 기간
+  peakWageReductionRate      Float?    // 임금피크 감소율
+  
+  // 월별 고정 지출
+  consumptionType            ConsumptionType @default(AMOUNT) // 소비 유형 (금액 or 비율)
+  monthlyConsumptionValue    Float?          // 소비 금액 또는 비율 값
+  monthlyInsurance           Float?          // 월별 보험료
+  monthlySavings             Float?          // 월별 적금
+  monthlyRepayment           Float?          // 월별 원리금 상환액
+  
+  // 관계 설정
+  monthlyIncomes             MonthlyIncome[] // 1:N 관계 (한 프로필에 여러 월별 수입)
+  loans                      Loan[]          // 1:N 관계 (한 프로필에 여러 대출)
+}
+
+// --- 월별 수입 모델 ---
+model MonthlyIncome {
+  id                  String   @id @default(cuid())
+  month               Int      // 월 (1 ~ 12)
+  income              Float    // 수입
+  bonus               Float    // 보너스
+  
+  // 관계 설정
+  profileId           String
+  financialProfile    FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, month]) // 한 프로필에 같은 월이 중복되지 않도록 설정
+}
+
+// --- 대출 정보 모델 ---
+model Loan {
+  id                  String   @id @default(cuid())
+  principal           Float    // 대출 원금
+  interestRate        Float    // 연이율
+  
+  // 관계 설정
+  profileId           String
+  financialProfile    FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}

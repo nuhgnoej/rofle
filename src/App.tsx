@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Header from "./components/Header";
 import { useThemeStore } from "./stores/theme.store";
+import { Outlet } from "react-router-dom";
 
 export default function App() {
   const { isDarkMode } = useThemeStore();
@@ -17,7 +18,7 @@ export default function App() {
   return (
     <div>
       <Header />
-      <h1>Hi</h1>
+      <Outlet />
     </div>
   );
 }
