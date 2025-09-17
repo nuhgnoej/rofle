@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import { generateProjection } from "./projectionService";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -68,6 +69,15 @@ app.post("/api/save-profile", async (req, res) => {
             .map((loan: any) => ({
               principal: parseNumber(loan.principal),
               interestRate: parseNumber(loan.interestRate),
+            })),
+        },
+        // --- [추가] 부동산 정보 저장 로직 ---
+        realEstateAssets: {
+          create: data.realEstates
+            .filter((asset: any) => asset.name && asset.currentValue)
+            .map((asset: any) => ({
+              name: asset.name,
+              currentValue: parseNumber(asset.currentValue),
             })),
         },
       },
@@ -142,6 +152,18 @@ app.delete("/api/profile/:id", async (req, res) => {
     res.status(200).json({ message: "프로필이 성공적으로 삭제되었습니다." });
   } catch (error) {
     console.error("프로필 삭제 실패:", error);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+});
+
+// --- [추가] 재무 예측 데이터를 생성하는 API ---
+app.get("/api/projection/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const projectionData = await generateProjection(id);
+    res.status(200).json(projectionData);
+  } catch (error) {
+    console.error("재무 예측 생성 실패:", error);
     res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 });

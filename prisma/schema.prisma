@@ -38,6 +38,8 @@ model FinancialProfile {
   // 관계 설정
   monthlyIncomes             MonthlyIncome[] // 1:N 관계 (한 프로필에 여러 월별 수입)
   loans                      Loan[]          // 1:N 관계 (한 프로필에 여러 대출)
+
+  realEstateAssets            RealEstateAsset[]
 }
 
 // --- 월별 수입 모델 ---
@@ -63,4 +65,15 @@ model Loan {
   // 관계 설정
   profileId           String
   financialProfile    FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// --- [추가] 부동산 자산 모델 ---
+model RealEstateAsset {
+  id           String   @id @default(cuid())
+  name         String   // 자산 이름 (예: 아파트, 오피스텔)
+  currentValue Float    // 현재 가치 (만원)
+
+  // 관계 설정
+  profileId    String
+  financialProfile FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }

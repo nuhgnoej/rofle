@@ -53,6 +53,101 @@ const MonthlyIncomeInput: React.FC<{ month: number }> = ({ month }) => (
   </div>
 );
 
+// --- [추가] 동적 부동산 정보 섹션 ---
+interface RealEstate {
+  id: number;
+  name: string;
+  currentValue: string;
+}
+interface RealEstateSectionProps {
+  assets: RealEstate[];
+  onAdd: () => void;
+  onRemove: (id: number) => void;
+  onChange: (
+    id: number,
+    field: keyof Omit<RealEstate, "id">,
+    value: string
+  ) => void;
+}
+const RealEstateSection: React.FC<RealEstateSectionProps> = ({
+  assets,
+  onAdd,
+  onRemove,
+  onChange,
+}) => {
+  return (
+    <div className="p-6 bg-card rounded-lg shadow-lg h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold text-text">부동산 정보</h2>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="px-3 py-1 text-sm font-semibold bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition"
+        >
+          자산 추가 +
+        </button>
+      </div>
+      <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+        {assets.map((asset, index) => (
+          <div
+            key={asset.id}
+            className="p-3 bg-background rounded-md border border-border"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-bold">부동산 {index + 1}</h3>
+              <button
+                type="button"
+                onClick={() => onRemove(asset.id)}
+                className="text-xs text-secondary hover:text-red-500"
+              >
+                삭제
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label
+                  htmlFor={`asset_name_${asset.id}`}
+                  className="block text-xs font-medium text-secondary mb-1"
+                >
+                  자산명
+                </label>
+                <input
+                  id={`asset_name_${asset.id}`}
+                  name={`asset_name_${asset.id}`}
+                  type="text"
+                  value={asset.name}
+                  onChange={(e) => onChange(asset.id, "name", e.target.value)}
+                  placeholder="예: 강남 아파트"
+                  className="w-full text-sm pl-2 py-1.5 rounded-md border border-border focus:ring-1"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor={`asset_value_${asset.id}`}
+                  className="block text-xs font-medium text-secondary mb-1"
+                >
+                  현재 가치 (만원)
+                </label>
+                <input
+                  id={`asset_value_${asset.id}`}
+                  name={`asset_value_${asset.id}`}
+                  type="number"
+                  value={asset.currentValue}
+                  onChange={(e) =>
+                    onChange(asset.id, "currentValue", e.target.value)
+                  }
+                  placeholder="150000"
+                  className="w-full text-sm pl-2 py-1.5 rounded-md border border-border focus:ring-1"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // --- 2. 동적 대출 정보 섹션 (스타일 수정) ---
 interface Loan {
   id: number;
@@ -149,70 +244,96 @@ const LoanSection: React.FC<LoanSectionProps> = ({
   );
 };
 
-// --- 3. 월별 지출 섹션 (스타일 수정) ---
+// --- 3. 월별 지출 섹션 (전체 교체) ---
 const MonthlyExpensesSection: React.FC = () => {
   const [consumptionType, setConsumptionType] = useState("amount");
+  const [repaymentType, setRepaymentType] = useState("amount"); // 상환 방식 상태 추가
+
+  // 입력 필드를 렌더링하는 헬퍼 컴포넌트
+  const renderInputControl = (
+    type: string,
+    setType: (value: string) => void,
+    amountName: string,
+    percentageName: string,
+    label: string,
+    percentageHelpText: string
+  ) => (
+    <div>
+      <label className="block text-sm font-medium text-text mb-1">
+        {label}
+      </label>
+      <div className="flex items-center gap-4 mb-2">
+        {/* 금액/비율 라디오 버튼 */}
+        <div className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            id={`${amountName}_radio`}
+            name={`${amountName}_type`}
+            value="amount"
+            checked={type === "amount"}
+            onChange={() => setType("amount")}
+          />
+          <label htmlFor={`${amountName}_radio`} className="text-sm">
+            금액(만원)
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            id={`${percentageName}_radio`}
+            name={`${amountName}_type`}
+            value="percentage"
+            checked={type === "percentage"}
+            onChange={() => setType("percentage")}
+          />
+          <label htmlFor={`${percentageName}_radio`} className="text-sm">
+            비율(%)
+          </label>
+        </div>
+      </div>
+      {/* 조건부 입력 필드 */}
+      {type === "amount" ? (
+        <input
+          type="number"
+          name={amountName}
+          placeholder="150"
+          className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
+        />
+      ) : (
+        <div>
+          <input
+            type="number"
+            name={percentageName}
+            placeholder="40"
+            className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
+          />
+          <p className="text-xs text-secondary mt-1">{percentageHelpText}</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="p-6 bg-card rounded-lg shadow-lg h-full">
       <h2 className="text-lg font-bold text-text mb-4">월별 고정 지출</h2>
-      <div className="space-y-3">
-        {/* 월별 소비금액 */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1">
-            월별 소비금액
-          </label>
-          <div className="flex items-center gap-4 mb-1">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                id="consum_amount"
-                name="consumption_type"
-                value="amount"
-                checked={consumptionType === "amount"}
-                onChange={() => setConsumptionType("amount")}
-                className="h-4 w-4 text-primary focus:ring-primary border-border"
-              />
-              <label htmlFor="consum_amount" className="text-sm">
-                금액(만원)
-              </label>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                id="consum_percent"
-                name="consumption_type"
-                value="percentage"
-                checked={consumptionType === "percentage"}
-                onChange={() => setConsumptionType("percentage")}
-                className="h-4 w-4 text-primary focus:ring-primary border-border"
-              />
-              <label htmlFor="consum_percent" className="text-sm">
-                비율(%)
-              </label>
-            </div>
-          </div>
-          {consumptionType === "amount" ? (
-            <input
-              type="number"
-              name="monthly_consumption"
-              placeholder="150"
-              className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
-            />
-          ) : (
-            <div>
-              <input
-                type="number"
-                name="monthly_consumption_percentage"
-                placeholder="40"
-                className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
-              />
-              <p className="text-xs text-secondary mt-1">
-                ※ (월수입 - 보험료 - 대출상환액)의 %
-              </p>
-            </div>
-          )}
-        </div>
-        {/* 월별 보험료, 적금, 상환액 */}
+      <div className="space-y-4">
+        {renderInputControl(
+          consumptionType,
+          setConsumptionType,
+          "monthly_consumption",
+          "monthly_consumption_percentage",
+          "월별 소비금액",
+          "※ (월 총수입 - 대출상환액 - 보험료)의 %"
+        )}
+        {renderInputControl(
+          repaymentType,
+          setRepaymentType,
+          "monthly_repayment",
+          "monthly_repayment_percentage",
+          "월별 원리금 상환액",
+          "※ (월 총수입)의 %"
+        )}
+        {/* 월별 보험료, 적금 (기존과 동일) */}
         <div>
           <label
             htmlFor="monthly_insurance"
@@ -240,21 +361,6 @@ const MonthlyExpensesSection: React.FC = () => {
             type="number"
             name="monthly_savings"
             placeholder="50"
-            className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="monthly_repayment"
-            className="block text-xs font-medium text-secondary mb-1"
-          >
-            월별 원리금 상환액 (만원)
-          </label>
-          <input
-            id="monthly_repayment"
-            type="number"
-            name="monthly_repayment"
-            placeholder="100"
             className="w-full text-sm pl-2 py-1.5 rounded-md bg-background border border-border focus:ring-1"
           />
         </div>
@@ -347,6 +453,31 @@ export default function InputForm() {
   const [loans, setLoans] = useState<Loan[]>([
     { id: Date.now(), principal: "", interestRate: "" },
   ]);
+  const [realEstates, setRealEstates] = useState<RealEstate[]>([
+    { id: Date.now(), name: "", currentValue: "" },
+  ]);
+
+  // --- [추가] 부동산 자산 핸들러 함수 ---
+  const addRealEstate = () => {
+    setRealEstates([
+      ...realEstates,
+      { id: Date.now(), name: "", currentValue: "" },
+    ]);
+  };
+  const removeRealEstate = (id: number) => {
+    setRealEstates(realEstates.filter((asset) => asset.id !== id));
+  };
+  const handleRealEstateChange = (
+    id: number,
+    field: keyof Omit<RealEstate, "id">,
+    value: string
+  ) => {
+    setRealEstates(
+      realEstates.map((asset) =>
+        asset.id === id ? { ...asset, [field]: value } : asset
+      )
+    );
+  };
 
   const addLoan = () => {
     setLoans([...loans, { id: Date.now(), principal: "", interestRate: "" }]);
@@ -387,6 +518,8 @@ export default function InputForm() {
       monthlyIncomes: monthlyIncomes,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       loans: loans.map(({ id, ...rest }) => rest),
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      realEstates: realEstates.map(({ id, ...rest }) => rest),
     };
 
     try {
@@ -440,6 +573,16 @@ export default function InputForm() {
             onAdd={addLoan}
             onRemove={removeLoan}
             onChange={handleLoanChange}
+          />
+        </div>
+
+        {/* --- [추가] 부동산 섹션 --- */}
+        <div className="lg:col-span-12">
+          <RealEstateSection
+            assets={realEstates}
+            onAdd={addRealEstate}
+            onRemove={removeRealEstate}
+            onChange={handleRealEstateChange}
           />
         </div>
 
