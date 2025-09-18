@@ -4,18 +4,34 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-empty;
+}
+
 /* 1. :root는 기본 모드(라이트 모드)의 변수를 정의합니다. */
 :root {
+  --color-empty: #f1f5f9; /* 옅은 회색 */
   --color-text-base: #2d3748; /* 어두운 회색 */
   --color-background: #ffffff; /* 흰색 */
   --color-primary: #3b82f6; /* 파란색 */
   --color-secondary: #6b7280; /* 회색 */
+
+  --color-accent: #eff6ff; /* bg-blue-50 */
+  --color-success: #16a34a; /* text-green-600 */
+  --color-danger: #dc2626; /* text-red-600 */
+  --color-warning: #f97316; /* text-orange-600 */
 }
 
 /* 2. .dark 선택자는 다크 모드일 때 적용될 변수를 정의합니다. */
 .dark {
+  --color-empty: #0f172a;
   --color-text-base: #edf2f7; /* 밝은 회색 */
   --color-background: #1a202c; /* 아주 어두운 회색 */
   --color-primary: #60a5fa; /* 밝은 파란색 */
   --color-secondary: #9ca3af; /* 밝은 회색 */
+
+  --color-accent: #1e293b; /* bg-slate-800 계열 */
+  --color-success: #4ade80; /* text-green-400 계열 */
+  --color-danger: #f87171; /* text-red-400 계열 */
+  --color-warning: #fb923c; /* text-orange-400 계열 */
 }

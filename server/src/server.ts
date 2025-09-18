@@ -60,20 +60,16 @@ app.post("/api/save-profile", async (req, res) => {
             bonus: parseNumber(inc.bonus) ?? 0, // 값이 없으면 0으로 처리
           })),
         },
-
-        // Loan Section
         loans: {
-          create: data.loans
-            // ❗️ 이 필터 로직을 추가하세요!
+          create: (data.loans ?? [])
             .filter((loan: any) => loan.principal && loan.interestRate)
             .map((loan: any) => ({
               principal: parseNumber(loan.principal),
               interestRate: parseNumber(loan.interestRate),
             })),
         },
-        // --- [추가] 부동산 정보 저장 로직 ---
         realEstateAssets: {
-          create: data.realEstates
+          create: (data.realEstateAssets ?? [])
             .filter((asset: any) => asset.name && asset.currentValue)
             .map((asset: any) => ({
               name: asset.name,
