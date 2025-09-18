@@ -25,44 +25,31 @@ const parseNumber = (value: string | null | undefined): number | null => {
 app.post("/api/save-profile", async (req, res) => {
   try {
     const data = req.body;
-    console.log("서버가 받은 원본 데이터:", data); // 디버깅용 로그 추가
-
-    // 안전하게 데이터 변환
-    const dob = data.dob ? new Date(data.dob) : null;
-    if (dob && isNaN(dob.getTime())) {
-      // dob가 유효하지 않은 날짜인 경우 null로 처리
-      throw new Error("Invalid date of birth provided.");
-    }
 
     const newProfile = await prisma.financialProfile.create({
       data: {
-        // Planning Section
-        dob: dob,
-        retirementAge: parseNumber(data.retirement_age),
-        peakWagePeriod: parseNumber(data.peak_wage_period),
-        peakWageReductionRate: parseNumber(data.peak_wage_reduction_rate),
+        dob: data.dob ? new Date(data.dob) : null,
+        retirementAge: parseNumber(data.retirementAge),
+        peakWagePeriod: parseNumber(data.peakWagePeriod),
+        peakWageReductionRate: parseNumber(data.peakWageReductionRate),
+        salaryInflationRate: parseNumber(data.salaryInflationRate),
 
-        // Expenses Section
-        consumptionType:
-          data.consumption_type === "percentage" ? "PERCENTAGE" : "AMOUNT",
-        monthlyConsumptionValue: parseNumber(
-          data.monthly_consumption || data.monthly_consumption_percentage
-        ),
-        monthlyInsurance: parseNumber(data.monthly_insurance),
-        monthlySavings: parseNumber(data.monthly_savings),
-        monthlyRepayment: parseNumber(data.monthly_repayment),
+        consumptionType: data.consumptionType,
+        monthlyConsumptionValue: parseNumber(data.monthlyConsumptionValue),
+        monthlyRepayment: parseNumber(data.monthlyRepayment),
+        monthlyInsurance: parseNumber(data.monthlyInsurance),
+        monthlySavings: parseNumber(data.monthlySavings),
 
-        // Income Section
         monthlyIncomes: {
-          create: data.monthlyIncomes.map((inc: any) => ({
-            month: parseInt(inc.month),
-            income: parseNumber(inc.income) ?? 0, // 값이 없으면 0으로 처리
-            bonus: parseNumber(inc.bonus) ?? 0, // 값이 없으면 0으로 처리
+          create: (data.monthlyIncomes ?? []).map((inc: any) => ({
+            month: inc.month,
+            income: parseNumber(inc.income) ?? 0,
+            bonus: parseNumber(inc.bonus) ?? 0,
           })),
         },
         loans: {
           create: (data.loans ?? [])
-            .filter((loan: any) => loan.principal && loan.interestRate)
+            .filter((loan: any) => loan.principal || loan.interestRate)
             .map((loan: any) => ({
               principal: parseNumber(loan.principal),
               interestRate: parseNumber(loan.interestRate),
@@ -70,7 +57,7 @@ app.post("/api/save-profile", async (req, res) => {
         },
         realEstateAssets: {
           create: (data.realEstateAssets ?? [])
-            .filter((asset: any) => asset.name && asset.currentValue)
+            .filter((asset: any) => asset.name || asset.currentValue)
             .map((asset: any) => ({
               name: asset.name,
               currentValue: parseNumber(asset.currentValue),
@@ -83,8 +70,6 @@ app.post("/api/save-profile", async (req, res) => {
   } catch (error) {
     console.error("데이터 저장 실패:", error);
     res.status(500).json({ message: "서버 오류가 발생했습니다." });
-  } finally {
-    await prisma.$disconnect();
   }
 });
 
