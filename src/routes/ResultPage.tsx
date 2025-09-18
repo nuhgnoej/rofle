@@ -1,7 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { generateProjection } from "../lib/projectionEngine";
-import type { ProfileData, ProjectionData, MonthlyData } from "../types";
+import type {
+  ProfileData,
+  ProjectionData,
+  MonthlyData,
+  ProjectedData,
+} from "../types";
+
+interface OverrideData {
+  income: number | null;
+  monthlyConsumption: number | null;
+}
+
+interface YearlyOverrides {
+  [year: number]: {
+    [month: number]: OverrideData;
+  };
+}
 
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "-";
@@ -25,9 +41,32 @@ export default function ResultPage() {
         setLoading(true);
         const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/profile/${id}`;
         const response = await fetch(apiUrl);
+
         if (!response.ok)
           throw new Error("원본 데이터를 불러오는데 실패했습니다.");
         const result = await response.json();
+
+        // --- [수정] reduce 메서드에 타입 명시 ---
+        const overrides = (result.projectedData || []).reduce(
+          (acc: YearlyOverrides, cur: ProjectedData) => {
+            if (cur.isOverridden) {
+              acc[cur.year] = acc[cur.year] || {};
+              acc[cur.year][cur.month] = {
+                income: cur.income,
+                monthlyConsumption: cur.monthlyConsumption,
+              };
+            }
+            return acc;
+          },
+          {} as YearlyOverrides
+        );
+
+        setProfileInputs({
+          ...result,
+          overrides: overrides,
+          monthlyIncomes: result.monthlyIncomes || [],
+        });
+
         setProfileInputs({ ...result, overrides: {} });
       } catch (err) {
         setError((err as Error).message);
@@ -38,15 +77,24 @@ export default function ResultPage() {
     fetchProfileInputs();
   }, [id]);
 
-  const runProjection = useCallback(() => {
+  const runProjection = useCallback(async () => {
     if (profileInputs) {
-      const results = generateProjection(profileInputs);
-      setProjectionData(results);
+      // --- [수정] generateProjection 함수를 비동기 호출 ---
+      try {
+        const results = await generateProjection(profileInputs);
+        setProjectionData(results);
+      } catch (err) {
+        setError((err as Error).message);
+      }
     }
   }, [profileInputs]);
 
   useEffect(() => {
-    runProjection();
+    // --- [수정] 비동기 함수를 호출하기 위해 async 즉시 실행 함수 사용 ---
+    const run = async () => {
+      await runProjection();
+    };
+    run();
   }, [runProjection]);
 
   const handleMonthlyDataChange = (
@@ -146,7 +194,6 @@ export default function ResultPage() {
                     {year}년
                   </h3>
                   <table className="w-full text-sm text-left border-collapse text-secondary">
-                    {/* [추가] thead 블록 */}
                     <thead className="bg-accent/50 text-text">
                       <tr>
                         <th className="p-2 border font-semibold">월</th>
@@ -164,6 +211,14 @@ export default function ResultPage() {
                         </th>
                         <th className="p-2 border font-semibold text-right text-primary">
                           누적 적금액
+                        </th>
+                        {/* --- [추가] 부동산 가액 헤더 --- */}
+                        <th className="p-2 border font-semibold text-right text-success">
+                          부동산 가액
+                        </th>
+                        {/* --- [추가] 총 자산 헤더 --- */}
+                        <th className="p-2 border font-semibold text-right text-success">
+                          총 자산
                         </th>
                         <th className="p-2 border font-semibold text-right text-success">
                           월 가용금액
@@ -223,6 +278,14 @@ export default function ResultPage() {
                           </td>
                           <td className="p-2 border text-right">
                             {formatCurrency(monthData.cumulativeSavings)}
+                          </td>
+                          {/* --- [추가] 부동산 가액 셀 --- */}
+                          <td className="p-2 border text-right">
+                            {formatCurrency(monthData.realEstateValue)}
+                          </td>
+                          {/* --- [추가] 총 자산 셀 --- */}
+                          <td className="p-2 border text-right">
+                            {formatCurrency(monthData.totalAssets)}
                           </td>
                           <td className="p-2 border text-right">
                             {formatCurrency(monthData.disposableIncome)}

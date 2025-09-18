@@ -22,6 +22,17 @@ export interface ProfileData {
   monthlyConsumptionValue?: number;
   salaryInflationRate?: number;
   overrides?: { [year: string]: { [month: string]: Partial<MonthlyData> } };
+  projectedData: ProjectedData[];
+}
+
+export interface ProjectedData {
+  id: string;
+  year: number;
+  month: number;
+  income: number | null;
+  monthlyConsumption: number | null;
+  isOverridden: boolean;
+  profileId: string;
 }
 
 // 시뮬레이션 결과로 생성되는 월별 데이터 타입
@@ -38,6 +49,8 @@ export interface MonthlyData {
   remainingLoanPrincipal: number;
   disposableIncome: number;
   isOverridden: boolean;
+  realEstateValue: number;
+  totalAssets: number;
 }
 
 // 시뮬레이션 최종 요약 타입

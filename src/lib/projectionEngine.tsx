@@ -1,16 +1,18 @@
-import type {
-  ProfileData,
-  MonthlyData,
-  LoanState,
-  RealEstateState,
-} from "../types";
+import type { MonthlyData, LoanState, RealEstateState, ProfileData } from "../types";
+
+// import { PrismaClient } from "@prisma/client";
+
+// const prisma = new PrismaClient();
 
 /**
  * 프로필 ID를 기반으로 미래 재무 상황을 예측하여 반환합니다.
- * @param profile 예측을 생성할 사용자의 프로필 데이터 객체
+ * @param profileId 예측을 생성할 사용자의 프로필 ID
  * @returns {Promise<{projection: MonthlyData[], summary: object}>} 월별 예측 데이터 배열과 최종 요약 객체
  */
-export const generateProjection = (profile: ProfileData) => {
+export const generateProjection = (profileData: ProfileData) => {
+  // 1. 데이터베이스에서 프로필 전체 정보 가져오기
+  const profile = profileData;
+
   if (!profile || !profile.dob || !profile.retirementAge) {
     throw new Error(
       "예측에 필요한 필수 프로필 정보(생년월일, 정년)가 없습니다."
@@ -24,24 +26,19 @@ export const generateProjection = (profile: ProfileData) => {
   const currentUserAge =
     today.getFullYear() - new Date(profile.dob).getFullYear();
 
-  const SALARY_INFLATION_RATE = profile.salaryInflationRate
-    ? profile.salaryInflationRate / 100
-    : 0.02;
-  const REAL_ESTATE_APPRECIATION_RATE = 0.02; // 부동산 연간 가치 상승률 2% (가정)
+  const SALARY_INFLATION_RATE = profile.salaryInflationRate || 0.02; // 사용자 입력값 사용
+  const REAL_ESTATE_APPRECIATION_RATE = 0.02; // 부동산 상승률은 현재 상수값으로 유지
 
-  // [수정] profile.loans/realEstateAssets가 undefined일 경우 빈 배열([])을 사용하고, 깊은 복사로 원본 데이터 불변성 유지
-  const loanStates: LoanState[] = JSON.parse(
-    JSON.stringify(
-      (profile.loans ?? []).map((l) => ({ ...l, principal: l.principal || 0 }))
-    )
-  );
-  const realEstateStates: RealEstateState[] = JSON.parse(
-    JSON.stringify(
-      (profile.realEstateAssets ?? []).map((a) => ({
-        name: a.name,
-        value: a.currentValue,
-      }))
-    )
+  const loanStates: LoanState[] = profile.loans
+    .map((l) => ({
+      id: l.id,
+      principal: l.principal || 0,
+      interestRate: l.interestRate || 0,
+    }))
+    .sort((a, b) => b.interestRate - a.interestRate);
+
+  const realEstateStates: RealEstateState[] = profile.realEstateAssets.map(
+    (a) => ({ name: a.name, value: a.currentValue })
   );
 
   let cumulativeSavings = 0;
@@ -53,7 +50,10 @@ export const generateProjection = (profile: ProfileData) => {
   let fixedPeakSalary = 0;
   let inflationMultiplier = 1.0;
 
-  // --- 메인 시뮬레이션 루프 (정년까지 매년, 매월 반복) ---
+  // --- [추가] ProjectedData에서 isOverridden이 true인 값으로 초기화 ---
+  const overrides = profile.projectedData.filter((d) => d.isOverridden);
+
+  // --- 메인 시뮬레이션 루프 ---
   for (let year = today.getFullYear(); year <= retirementYear; year++) {
     const currentAge = currentUserAge + (year - today.getFullYear());
 
@@ -63,14 +63,14 @@ export const generateProjection = (profile: ProfileData) => {
       const lastMonthIncome =
         profile.monthlyIncomes.find((i) => i.month === 12)?.income || 0;
       peakSalaryBeforeReduction = lastMonthIncome * tempInflationMultiplier;
-      const reductionRate = profile.peakWageReductionRate
-        ? profile.peakWageReductionRate / 100
-        : 0.2;
-      fixedPeakSalary = peakSalaryBeforeReduction * (1 - reductionRate);
+      fixedPeakSalary =
+        peakSalaryBeforeReduction *
+        (1 - (profile.peakWageReductionRate || 0) / 100); // 감소율 적용
     }
 
     if (year > today.getFullYear()) {
       inflationMultiplier *= 1 + SALARY_INFLATION_RATE;
+      // --- [수정] 부동산 가치 계산은 연도별로 한 번만 수행 ---
       realEstateStates.forEach((asset) => {
         asset.value *= 1 + REAL_ESTATE_APPRECIATION_RATE;
       });
@@ -80,8 +80,10 @@ export const generateProjection = (profile: ProfileData) => {
       if (year === today.getFullYear() && month < today.getMonth() + 1)
         continue;
 
-      const overrideData = profile.overrides?.[year]?.[month] || {};
-      const isOverridden = Object.keys(overrideData).length > 0;
+      // --- [수정] 오버라이드 값 적용 ---
+      const overrideData = overrides.find(
+        (d) => d.year === year && d.month === month
+      );
 
       const baseIncomeData = profile.monthlyIncomes.find(
         (i) => i.month === month
@@ -97,14 +99,30 @@ export const generateProjection = (profile: ProfileData) => {
         monthlyBonus *= inflationMultiplier;
       }
 
-      if (overrideData.income !== undefined) {
-        monthlyIncome = overrideData.income;
-        monthlyBonus = 0;
+      let monthlyConsumption = 0;
+      if (profile.consumptionType === "PERCENTAGE") {
+        monthlyConsumption =
+          (monthlyIncome + monthlyBonus) *
+          ((profile.monthlyConsumptionValue || 0) / 100);
+      } else {
+        monthlyConsumption = profile.monthlyConsumptionValue || 0;
+      }
+
+      // 오버라이드된 값이 있으면 적용
+      if (overrideData) {
+        if (overrideData.income !== null) {
+          monthlyIncome = overrideData.income;
+          monthlyBonus = 0; // 보너스는 오버라이드 시 0으로 가정
+        }
+        if (overrideData.monthlyConsumption !== null) {
+          monthlyConsumption = overrideData.monthlyConsumption;
+        }
       }
 
       const totalMonthlyIncome = monthlyIncome + monthlyBonus;
-      const totalRepaymentAmount = profile.monthlyRepayment || 0;
 
+      // ... 기존의 대출 상환, 소비, 적금 로직 ...
+      const totalRepaymentAmount = profile.monthlyRepayment || 0;
       let loanInterestPaidThisMonth = 0;
       let loanPrincipalPaidThisMonth = 0;
       let paymentPool = totalRepaymentAmount;
@@ -114,6 +132,7 @@ export const generateProjection = (profile: ProfileData) => {
 
         const interestForMonth =
           (loan.principal * (loan.interestRate / 100)) / 12;
+
         const interestPayment = Math.min(paymentPool, interestForMonth);
         loanInterestPaidThisMonth += interestPayment;
         paymentPool -= interestPayment;
@@ -132,18 +151,6 @@ export const generateProjection = (profile: ProfileData) => {
 
       const incomeForConsumption =
         totalMonthlyIncome - totalLoanPayment - (profile.monthlyInsurance || 0);
-      let monthlyConsumption = 0;
-      if (overrideData.monthlyConsumption !== undefined) {
-        monthlyConsumption = overrideData.monthlyConsumption;
-      } else {
-        if (profile.consumptionType === "PERCENTAGE") {
-          monthlyConsumption =
-            incomeForConsumption *
-            ((profile.monthlyConsumptionValue || 0) / 100);
-        } else {
-          monthlyConsumption = profile.monthlyConsumptionValue || 0;
-        }
-      }
 
       const disposableIncome =
         incomeForConsumption -
@@ -151,6 +158,12 @@ export const generateProjection = (profile: ProfileData) => {
         monthlyConsumption;
       const remainingLoanPrincipal = loanStates.reduce(
         (sum, l) => sum + l.principal,
+        0
+      );
+
+      // --- [추가] 부동산 가치 및 현재 시점의 자산 계산을 배열에 포함 ---
+      const currentRealEstateValue = realEstateStates.reduce(
+        (sum, asset) => sum + asset.value,
         0
       );
 
@@ -166,17 +179,16 @@ export const generateProjection = (profile: ProfileData) => {
         cumulativeSavings,
         remainingLoanPrincipal,
         disposableIncome,
-        isOverridden,
+        realEstateValue: currentRealEstateValue,
+        totalAssets: cumulativeSavings + currentRealEstateValue,
+        isOverridden: false,
       });
     }
   }
 
   // --- 최종 결과 요약 생성 ---
   const finalState = projection[projection.length - 1];
-  const finalRealEstateValue = realEstateStates.reduce(
-    (sum, asset) => sum + asset.value,
-    0
-  );
+  const finalRealEstateValue = finalState.realEstateValue;
   const finalSavings = finalState?.cumulativeSavings || 0;
   const finalLiabilities = finalState?.remainingLoanPrincipal || 0;
 

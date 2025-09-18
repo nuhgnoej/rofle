@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 const PORT = 4000; // 백엔드 서버 포트
 
 // 미들웨어 설정
-app.use(cors()); // CORS 허용 (Vite 개발 서버からのリクエストを許可するため)
+app.use(cors());
 app.use(express.json()); // JSON 요청 본문을 파싱하기 위함
 
 // 헬퍼 함수: 문자열을 숫자로 바꾸되, 비어있거나 잘못된 값이면 null을 반환
@@ -21,56 +21,22 @@ const parseNumber = (value: string | null | undefined): number | null => {
   return isNaN(num) ? null : num;
 };
 
-// 데이터 저장 API 라우트
-app.post("/api/save-profile", async (req, res) => {
-  try {
-    const data = req.body;
-
-    const newProfile = await prisma.financialProfile.create({
-      data: {
-        dob: data.dob ? new Date(data.dob) : null,
-        retirementAge: parseNumber(data.retirementAge),
-        peakWagePeriod: parseNumber(data.peakWagePeriod),
-        peakWageReductionRate: parseNumber(data.peakWageReductionRate),
-        salaryInflationRate: parseNumber(data.salaryInflationRate),
-
-        consumptionType: data.consumptionType,
-        monthlyConsumptionValue: parseNumber(data.monthlyConsumptionValue),
-        monthlyRepayment: parseNumber(data.monthlyRepayment),
-        monthlyInsurance: parseNumber(data.monthlyInsurance),
-        monthlySavings: parseNumber(data.monthlySavings),
-
-        monthlyIncomes: {
-          create: (data.monthlyIncomes ?? []).map((inc: any) => ({
-            month: inc.month,
-            income: parseNumber(inc.income) ?? 0,
-            bonus: parseNumber(inc.bonus) ?? 0,
-          })),
-        },
-        loans: {
-          create: (data.loans ?? [])
-            .filter((loan: any) => loan.principal || loan.interestRate)
-            .map((loan: any) => ({
-              principal: parseNumber(loan.principal),
-              interestRate: parseNumber(loan.interestRate),
-            })),
-        },
-        realEstateAssets: {
-          create: (data.realEstateAssets ?? [])
-            .filter((asset: any) => asset.name || asset.currentValue)
-            .map((asset: any) => ({
-              name: asset.name,
-              currentValue: parseNumber(asset.currentValue),
-            })),
-        },
+// app.ts 파일의 app.post("/api/save-profile") 엔드포인트 수정
+app.get("/api/profile/:id", async (req, res) => {
+  const { id } = req.params;
+  const profile = await prisma.financialProfile.findUnique({
+    where: { id: id },
+    include: {
+      monthlyIncomes: true,
+      loans: true,
+      realEstateAssets: true,
+      projectedData: {
+        orderBy: [{ year: "asc" }, { month: "asc" }],
       },
-    });
-
-    res.status(201).json(newProfile);
-  } catch (error) {
-    console.error("데이터 저장 실패:", error);
-    res.status(500).json({ message: "서버 오류가 발생했습니다." });
-  }
+    },
+  });
+  if (!profile) return res.status(404).json({ message: "프로필 없음" });
+  res.status(200).json(profile);
 });
 
 // --- [추가] 특정 ID의 프로필 정보를 조회하는 API ---
