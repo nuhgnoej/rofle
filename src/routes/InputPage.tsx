@@ -12,8 +12,7 @@ const TABS = [
 export default function InputPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // [수정] 1. 렌더링 로직(탭 비활성화)에 필요한 데이터만 선택하여 구독합니다.
+  
   const dob = useFormStore((state) => state.dob);
   const retirementAge = useFormStore((state) => state.retirementAge);
   const resetForm = useFormStore((state) => state.resetForm);

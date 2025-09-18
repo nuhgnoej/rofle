@@ -11,7 +11,7 @@ export interface ProfileData {
     income: number;
     bonus: number;
   }[];
-  loans: { id: string; principal: number; interestRate: number }[];
+  loans: Loan[];
   realEstateAssets: { id: string; name: string; currentValue: number }[];
   peakWagePeriod?: number;
   peakWageReductionRate?: number;
@@ -87,11 +87,14 @@ export interface MonthlyIncome {
   bonus: number;
 }
 
-export interface Loan {
+export type Loan = {
   id: string;
+  name: string;
+  type: string;
   principal: number;
   interestRate: number;
-}
+  termInYears: number;
+};
 
 export interface RealEstateAsset {
   id: string;

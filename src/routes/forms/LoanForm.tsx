@@ -7,8 +7,15 @@ export default function LoanForm() {
 
   const addLoan = () => {
     const newLoans: Loan[] = [
-      ...loans,
-      { id: Date.now().toString(), principal: 0, interestRate: 0 },
+      ...loans, // ✨ name, type, termInYears 필드를 추가합니다.
+      {
+        id: Date.now().toString(),
+        name: "",
+        type: "",
+        principal: 0,
+        interestRate: 0,
+        termInYears: 0,
+      },
     ];
     setProfileData({ loans: newLoans });
   };
@@ -20,12 +27,18 @@ export default function LoanForm() {
 
   const handleLoanChange = (
     id: string,
-    field: "principal" | "interestRate",
+    field: "name" | "type" | "principal" | "interestRate" | "termInYears",
     value: string
   ) => {
-    const newLoans = loans.map((loan) =>
-      loan.id === id ? { ...loan, [field]: parseFloat(value) || 0 } : loan
-    );
+    const newLoans = loans.map((loan) => {
+      if (loan.id === id) {
+        // ✨ name과 type 필드는 문자열로, 나머지는 숫자로 처리합니다.
+        const updatedValue =
+          field === "name" || field === "type" ? value : parseFloat(value) || 0;
+        return { ...loan, [field]: updatedValue };
+      }
+      return loan;
+    });
     setProfileData({ loans: newLoans });
   };
 
@@ -58,6 +71,44 @@ export default function LoanForm() {
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                {" "}
+                <label
+                  htmlFor={`loan_name_${loan.id}`}
+                  className="block text-sm font-medium text-secondary mb-1"
+                >
+                  대출 이름{" "}
+                </label>{" "}
+                <input
+                  id={`loan_name_${loan.id}`}
+                  type="text"
+                  value={loan.name || ""}
+                  onChange={(e) =>
+                    handleLoanChange(loan.id, "name", e.target.value)
+                  }
+                  placeholder="주택 담보 대출"
+                  className="w-full text-sm p-2 rounded-md border"
+                />{" "}
+              </div>{" "}
+              <div>
+                {" "}
+                <label
+                  htmlFor={`loan_type_${loan.id}`}
+                  className="block text-sm font-medium text-secondary mb-1"
+                >
+                  대출 유형{" "}
+                </label>{" "}
+                <input
+                  id={`loan_type_${loan.id}`}
+                  type="text"
+                  value={loan.type || ""}
+                  onChange={(e) =>
+                    handleLoanChange(loan.id, "type", e.target.value)
+                  }
+                  placeholder="MORTGAGE"
+                  className="w-full text-sm p-2 rounded-md border"
+                />{" "}
+              </div>
               <div>
                 <label
                   htmlFor={`loan_principal_${loan.id}`}

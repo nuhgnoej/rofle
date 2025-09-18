@@ -18,7 +18,16 @@ const initialState: Omit<ProfileData, "id" | "overrides"> = {
     income: 0,
     bonus: 0,
   })),
-  loans: [],
+  loans: [
+    {
+      id: "0",
+      name: "",
+      type: "",
+      principal: 0,
+      interestRate: 0,
+      termInYears: 0,
+    },
+  ],
   realEstateAssets: [],
   peakWagePeriod: 5,
   peakWageReductionRate: 20,
@@ -28,6 +37,7 @@ const initialState: Omit<ProfileData, "id" | "overrides"> = {
   consumptionType: "AMOUNT",
   monthlyConsumptionValue: 0,
   salaryInflationRate: 2,
+  projectedData: [],
 };
 
 export const useFormStore = create<FormState>()(

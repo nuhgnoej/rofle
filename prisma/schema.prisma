@@ -38,9 +38,27 @@ model FinancialProfile {
   // 관계 설정
   monthlyIncomes             MonthlyIncome[] // 1:N 관계 (한 프로필에 여러 월별 수입)
   loans                      Loan[]          // 1:N 관계 (한 프로필에 여러 대출)
+  projectedData              ProjectedData[]
 
   realEstateAssets            RealEstateAsset[]
   salaryInflationRate       Float? 
+}
+
+// --- 프로젝션 데이터 모델 (월별 현금 흐름 및 자산 추정치) ---
+model ProjectedData {
+ id       String  @id @default(cuid())
+ year      Int
+ month     Int
+ income     Float?
+ monthlyConsumption Float?
+ endOfYearAssets Float?
+ isOverridden  Boolean @default(false)
+
+ // ✨ 관계 설정
+ profileId   String
+ financialProfile FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+ @@unique([profileId, year, month])
 }
 
 // --- 월별 수입 모델 ---
@@ -60,8 +78,11 @@ model MonthlyIncome {
 // --- 대출 정보 모델 ---
 model Loan {
   id                  String   @id @default(cuid())
+  name         String?  // ✨ 추가: 대출 이름
+ type         String?  // ✨ 추가: 대출 종류
   principal           Float    // 대출 원금
   interestRate        Float    // 연이율
+  termInYears     Int?   // ✨ 추가: 대출 기간 (연 단위)
   
   // 관계 설정
   profileId           String
