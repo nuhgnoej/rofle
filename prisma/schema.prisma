@@ -48,6 +48,8 @@ model FinancialProfile {
 
   realEstateAssets            RealEstateAsset[]
   salaryInflationRate       Float? 
+
+  projectedLoanStates     ProjectedLoanState[]
 }
 
 // --- 프로젝션 데이터 모델 (월별 현금 흐름 및 자산 추정치) ---
@@ -59,10 +61,10 @@ model ProjectedData {
  bonus     Float?
  loanInterestPaid Float?
  loanPrincipalPaid Float?
- totalLoanPayment Float?
+ // totalLoanPayment Float?
  monthlyConsumption Float?
  cumulativeSavings Float?
- remainingLoanPrincipal Float?
+ remainingLoanPrincipalTotal Float?
  disposableIncome Float?
  endOfYearAssets Float?
  isOverridden  Boolean @default(false)
@@ -71,7 +73,8 @@ model ProjectedData {
 
  // ✨ 관계 설정
  profileId   String
- financialProfile FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+ projectedLoanStates ProjectedLoanState[]
+ financialProfile FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade) 
 
  @@unique([profileId, year, month])
 }
@@ -99,11 +102,13 @@ model Loan {
   interestRate        Float    // 연이율
   termInYears     Int?   // 대출 기간 (연 단위)  
   gracePeriodInYears Int? // 거치기간 추가
-  paymentMethod String? // 예: '원리금균등', '원금균등', '만기일시'
+  paymentMethod String // 예: '원리금균등', '원금균등', '만기일시'
   
   // 관계 설정
   profileId           String
   financialProfile    FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  projectedLoanStates ProjectedLoanState[]
 }
 
 // --- [추가] 부동산 자산 모델 ---
@@ -115,4 +120,28 @@ model RealEstateAsset {
   // 관계 설정
   profileId    String
   financialProfile FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// 💡 새로운 모델: 월별 개별 대출 상태 저장
+model ProjectedLoanState {
+  id                    String   @id @default(cuid())
+  year                  Int
+  month                 Int
+
+  // 💡 대출 상태 정보
+  principalPaid         Float?
+  interestPaid          Float?
+  remainingPrincipal    Float?
+  
+  // 💡 관계 설정
+  profileId             String
+  loanId                String
+  projectedDataId       String
+  
+  // 💡 연결된 모델
+  financialProfile      FinancialProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  loan                  Loan             @relation(fields: [loanId], references: [id])
+  projectedData         ProjectedData    @relation(fields: [projectedDataId], references: [id])
+
+  @@unique([projectedDataId, loanId])
 }

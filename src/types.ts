@@ -59,6 +59,9 @@ export interface MonthlyData {
   isOverridden: boolean;
   realEstateValue: number;
   totalAssets: number;
+  loanInterestPaidTotal: number;
+  loanPrincipalPaidTotal: number;
+  remainingLoanPrincipalTotal: number;
 }
 
 // 시뮬레이션 최종 요약 타입
@@ -81,6 +84,10 @@ export interface LoanState {
   id: string;
   principal: number;
   interestRate: number;
+  remainingPrincipal: number;
+  termInYears: number | null;
+  gracePeriodInYears: number | null;
+  paymentMethod: string;
 }
 
 export interface RealEstateState {
@@ -97,11 +104,11 @@ export interface MonthlyIncome {
 
 export type Loan = {
   id: string;
-  name: string;
+  name: string | null;
   type: string;
   principal: number;
   interestRate: number;
-  termInYears: number;
+  termInYears: number | null;
   gracePeriodInYears?: number;
   paymentMethod: string;
 };
@@ -110,4 +117,51 @@ export interface RealEstateAsset {
   id: string;
   name: string;
   currentValue: number;
+}
+
+export interface ProjectedLoanState {
+  id: string;
+  year: number;
+  month: number;
+  principalPaid: number | null;
+  interestPaid: number | null;
+  remainingPrincipal: number | null;
+  profileId: string;
+  loanId: string;
+}
+
+export interface ProjectionSummary {
+  retirementYear: number;
+  finalAssets: number;
+  finalLiabilities: number;
+  totalInterestPaid: number;
+  finalSavings: number;
+  finalRealEstateValue: number;
+}
+
+export interface ProfileWithProjection {
+  id: string;
+  dob: string;
+  name: string;
+  familyMembers: FamilyMember[] | null;
+  retirementAge: number;
+  monthlyIncomes: {
+    id: string;
+    month: number;
+    income: number;
+    bonus: number;
+  }[];
+  loans: Loan[];
+  realEstateAssets: RealEstateAsset[];
+  peakWagePeriod?: number;
+  peakWageReductionRate?: number;
+  monthlyRepayment?: number;
+  monthlySavings?: number;
+  monthlyInsurance?: number;
+  consumptionType?: "AMOUNT" | "PERCENTAGE";
+  monthlyConsumptionValue?: number;
+  salaryInflationRate?: number;
+  summary: ProjectionSummary;
+  projectedData: MonthlyData[];
+  projectedLoanStates: ProjectedLoanState[];
 }

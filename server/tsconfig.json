@@ -11,8 +11,7 @@
     "esModuleInterop": true,
 
     /* 경로 설정 (선택 사항이지만 추천) */
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "outDir": "./dist"
   },
   "include": ["src/**/*"] // 타입스크립트 컴파일 대상 폴더 지정
 }

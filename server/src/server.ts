@@ -22,7 +22,7 @@ const parseNumber = (value: string | null | undefined): number | null => {
   return isNaN(num) ? null : num;
 };
 
-// 프로필 데이터 저장 (부동산 데이터 포함)
+// 프로필 데이터 저장 및 예측 데이터 생성
 app.post("/api/save-profile", async (req, res) => {
   try {
     const { monthlyIncomes, loans, realEstateAssets, ...profileData } =
@@ -47,7 +47,6 @@ app.post("/api/save-profile", async (req, res) => {
       },
     });
 
-    // 월별 수입 데이터 저장
     if (monthlyIncomes && Array.isArray(monthlyIncomes)) {
       await prisma.monthlyIncome.createMany({
         data: monthlyIncomes.map((income) => ({
@@ -59,7 +58,6 @@ app.post("/api/save-profile", async (req, res) => {
       });
     }
 
-    // 대출 데이터 저장
     if (loans && Array.isArray(loans)) {
       await prisma.loan.createMany({
         data: loans.map((loan) => ({
@@ -67,7 +65,7 @@ app.post("/api/save-profile", async (req, res) => {
           type: loan.type,
           principal: parseFloat(loan.principal),
           interestRate: parseFloat(loan.interestRate),
-          termInYears: parseFloat(loan.termInYears),
+          termInYears: parseNumber(loan.termInYears),
           gracePeriodInYears: parseNumber(loan.gracePeriodInYears),
           paymentMethod: loan.paymentMethod,
           profileId: newProfile.id,
@@ -85,48 +83,52 @@ app.post("/api/save-profile", async (req, res) => {
       });
     }
 
-    const { projection } = await generateProjection(newProfile.id);
+    const { projection, projectedLoanStates, summary } =
+      await generateProjection(newProfile.id);
 
-    await prisma.projectedData.createMany({
-      data: projection.map((monthData) => ({
-        ...monthData,
+    // 💡 1단계: projectedData를 먼저 저장하고, 생성된 레코드 ID를 받아옵니다.
+    const createdProjectedData = await prisma.projectedData.createManyAndReturn(
+      {
+        data: projection.map((monthData) => ({
+          ...monthData,
+          profileId: newProfile.id,
+        })),
+      }
+    );
+
+    // 💡 2단계: loanStates 배열을 순회하며, 올바른 projectedDataId를 할당합니다.
+    const loanStatesToCreate = projectedLoanStates.map((loanStateData) => {
+      const correspondingProjectedData = createdProjectedData.find(
+        (data) =>
+          data.year === loanStateData.year && data.month === loanStateData.month
+      );
+
+      if (!correspondingProjectedData) {
+        throw new Error("해당하는 projectedData 레코드를 찾을 수 없습니다.");
+      }
+
+      return {
+        ...loanStateData,
         profileId: newProfile.id,
-      })),
+        projectedDataId: correspondingProjectedData.id,
+      };
+    });
+
+    // 💡 3단계: 올바른 ID가 할당된 loanStates를 저장합니다.
+    await prisma.projectedLoanState.createMany({
+      data: loanStatesToCreate,
+    });
+
+    // 💡 summary 저장
+    await prisma.financialProfile.update({
+      where: { id: newProfile.id },
+      data: { summary: summary },
     });
 
     res.status(201).json(newProfile);
   } catch (error) {
     console.error("데이터 저장 실패:", error);
     res.status(500).json({ message: "서버 오류가 발생했습니다." });
-  }
-});
-
-// ✅ 새로운 API: 재무 예측 결과를 계산하고 데이터베이스에 저장
-app.post("/api/save-projection/:profileId", async (req, res) => {
-  try {
-    const { profileId } = req.params; // 1. 재무 예측 계산 실행
-
-    const { projection, summary } = await generateProjection(profileId); // 2. 기존 예측 데이터 삭제
-
-    await prisma.projectedData.deleteMany({
-      where: { profileId: profileId },
-    }); // 3. 새로운 예측 데이터를 데이터베이스에 저장
-
-    const savedData = await prisma.projectedData.createMany({
-      data: projection.map((monthData) => ({
-        ...monthData,
-        profileId: profileId,
-      })),
-    });
-
-    res.status(201).json({
-      message: "재무 예측 결과가 성공적으로 저장되었습니다.",
-      count: savedData.count,
-      summary, // 최종 요약 데이터도 함께 반환
-    });
-  } catch (error) {
-    console.error("예측 결과 저장 실패:", error);
-    res.status(500).json({ message: "예측 결과 저장 중 오류가 발생했습니다." });
   }
 });
 
@@ -142,27 +144,12 @@ app.get("/api/profile/:id", async (req, res) => {
       projectedData: {
         orderBy: [{ year: "asc" }, { month: "asc" }],
       },
+      projectedLoanStates: true, // 💡 추가된 부분
     },
   });
-  if (!profile || !profile.dob || !profile.retirementAge) {
-    // 필수 데이터가 없으면 오류를 반환하거나 다른 로직을 처리합니다.
-    return res.status(404).json({ message: "프로필 정보가 불충분합니다." });
-  }
+  if (!profile) return res.status(404).json({ message: "프로필 없음" });
 
-  const finalState = profile.projectedData[profile.projectedData.length - 1];
-  const finalSummary = {
-    retirementYear: new Date(profile.dob).getFullYear() + profile.retirementAge,
-    finalSavings: finalState?.cumulativeSavings || 0,
-    finalRealEstateValue: finalState?.realEstateValue || 0,
-    finalAssets:
-      (finalState?.cumulativeSavings || 0) + (finalState?.realEstateValue || 0),
-    finalLiabilities: finalState?.remainingLoanPrincipal || 0,
-    totalInterestPaid: profile.projectedData.reduce(
-      (sum, p) => sum + (p.loanInterestPaid || 0),
-      0
-    ),
-  }; // 💡 수정된 부분: 응답에 profile과 summary를 함께 포함
-
+  const finalSummary = profile.summary; // 💡 데이터베이스에서 직접 읽어옴
   res.status(200).json({ ...profile, summary: finalSummary });
 });
 
