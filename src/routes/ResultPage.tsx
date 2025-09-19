@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { generateProjection } from "../lib/projectionEngine";
 import type {
   ProfileData,
   ProjectionData,
@@ -36,18 +35,20 @@ export default function ResultPage() {
 
   useEffect(() => {
     if (!id) return;
-    const fetchProfileInputs = async () => {
+    const fetchAndDisplayProjection = async () => {
       try {
         setLoading(true);
         const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/profile/${id}`;
         const response = await fetch(apiUrl);
 
-        if (!response.ok)
-          throw new Error("원본 데이터를 불러오는데 실패했습니다.");
+        if (!response.ok) throw new Error("데이터를 불러오는데 실패했습니다.");
         const result = await response.json();
 
-        // --- [수정] reduce 메서드에 타입 명시 ---
-        const overrides = (result.projectedData || []).reduce(
+        // 서버 응답에서 projectedData와 summary를 직접 사용
+        const projectedDataArray = result.projectedData || [];
+        const summary = result.summary || {}; // summary 객체는 API 응답에 포함되어야 함
+
+        const overrides = projectedDataArray.reduce(
           (acc: YearlyOverrides, cur: ProjectedData) => {
             if (cur.isOverridden) {
               acc[cur.year] = acc[cur.year] || {};
@@ -67,35 +68,19 @@ export default function ResultPage() {
           monthlyIncomes: result.monthlyIncomes || [],
         });
 
-        setProfileInputs({ ...result, overrides: {} });
+        // projectedData와 summary를 상태에 설정
+        setProjectionData({
+          projection: projectedDataArray,
+          summary: summary,
+        });
       } catch (err) {
         setError((err as Error).message);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfileInputs();
+    fetchAndDisplayProjection();
   }, [id]);
-
-  const runProjection = useCallback(async () => {
-    if (profileInputs) {
-      // --- [수정] generateProjection 함수를 비동기 호출 ---
-      try {
-        const results = await generateProjection(profileInputs);
-        setProjectionData(results);
-      } catch (err) {
-        setError((err as Error).message);
-      }
-    }
-  }, [profileInputs]);
-
-  useEffect(() => {
-    // --- [수정] 비동기 함수를 호출하기 위해 async 즉시 실행 함수 사용 ---
-    const run = async () => {
-      await runProjection();
-    };
-    run();
-  }, [runProjection]);
 
   const handleMonthlyDataChange = (
     year: number,

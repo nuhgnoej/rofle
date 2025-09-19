@@ -50,9 +50,17 @@ model ProjectedData {
  year      Int
  month     Int
  income     Float?
+ bonus     Float?
+ loanInterestPaid Float?
+ loanPrincipalPaid Float?
+ totalLoanPayment Float?
  monthlyConsumption Float?
+ cumulativeSavings Float?
+ remainingLoanPrincipal Float?
+ disposableIncome Float?
  endOfYearAssets Float?
  isOverridden  Boolean @default(false)
+ realEstateValue Float?
 
  // ✨ 관계 설정
  profileId   String

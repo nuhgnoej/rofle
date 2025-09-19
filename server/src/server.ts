@@ -5,6 +5,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import { generateProjection } from "./projectionService";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -80,10 +81,49 @@ app.post("/api/save-profile", async (req, res) => {
       });
     }
 
+     // 💡 추가된 부분: 예측 로직 호출 및 결과 저장
+    const { projection } = await generateProjection(newProfile.id);
+
+    await prisma.projectedData.createMany({
+      data: projection.map((monthData) => ({
+        ...monthData,
+        profileId: newProfile.id,
+      })),
+    });
+
     res.status(201).json(newProfile);
   } catch (error) {
     console.error("데이터 저장 실패:", error);
     res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+});
+
+// ✅ 새로운 API: 재무 예측 결과를 계산하고 데이터베이스에 저장
+app.post("/api/save-projection/:profileId", async (req, res) => {
+  try {
+    const { profileId } = req.params; // 1. 재무 예측 계산 실행
+
+    const { projection, summary } = await generateProjection(profileId); // 2. 기존 예측 데이터 삭제
+
+    await prisma.projectedData.deleteMany({
+      where: { profileId: profileId },
+    }); // 3. 새로운 예측 데이터를 데이터베이스에 저장
+
+    const savedData = await prisma.projectedData.createMany({
+      data: projection.map((monthData) => ({
+        ...monthData,
+        profileId: profileId,
+      })),
+    });
+
+    res.status(201).json({
+      message: "재무 예측 결과가 성공적으로 저장되었습니다.",
+      count: savedData.count,
+      summary, // 최종 요약 데이터도 함께 반환
+    });
+  } catch (error) {
+    console.error("예측 결과 저장 실패:", error);
+    res.status(500).json({ message: "예측 결과 저장 중 오류가 발생했습니다." });
   }
 });
 

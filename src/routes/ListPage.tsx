@@ -50,7 +50,7 @@ export default function ListPage() {
       if (!response.ok) {
         throw new Error("삭제에 실패했습니다.");
       }
-      
+
       setProfiles((currentProfiles) =>
         currentProfiles.filter((profile) => profile.id !== idToDelete)
       );
@@ -67,7 +67,7 @@ export default function ListPage() {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">저장된 프로필 목록</h1>
+        <h1 className="text-3xl font-bold text-text">저장된 프로필 목록</h1>
         <Link
           to="/new"
           className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
