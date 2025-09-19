@@ -28,6 +28,7 @@ interface MonthlyData {
   remainingLoanPrincipal: number;
   disposableIncome: number;
   realEstateValue: number;
+  totalAssets: number;
 }
 
 /**
@@ -144,23 +145,37 @@ export const generateProjection = async (profileId: string) => {
       let totalLoanInterestPaid = 0;
       let totalLoanPrincipalPaid = 0;
 
+      // 1단계: 모든 대출의 이자를 먼저 계산
+      const monthlyInterests = loanStates.map((loan) => ({
+        id: loan.id,
+        interest: (loan.principal * (loan.interestRate / 100)) / 12,
+      }));
+
+      const totalMonthlyInterest = monthlyInterests.reduce(
+        (sum, item) => sum + item.interest,
+        0
+      );
+
+      // paymentPool이 총 이자 상환액보다 작은 경우 에러 반환
+      if (paymentPool < totalMonthlyInterest) {
+        throw new Error("월 상환액이 모든 대출의 이자를 갚기에 부족합니다.");
+      }
+
+      // 총 이자 상환액만큼 paymentPool에서 차감
+      totalLoanInterestPaid = totalMonthlyInterest;
+      paymentPool -= totalMonthlyInterest;
+
+      // 2단계: 남은 paymentPool로 이자율이 높은 순서로 원금 상환
+      // loanStates는 이미 이자율이 높은 순으로 정렬되어 있습니다.
       for (const loan of loanStates) {
         if (loan.principal <= 0 || paymentPool <= 0) continue;
 
-        const monthlyInterest =
-          (loan.principal * (loan.interestRate / 100)) / 12;
-
-        const interestPayment = Math.min(paymentPool, monthlyInterest);
-        totalLoanInterestPaid += interestPayment;
-        paymentPool -= interestPayment;
-
-        if (paymentPool > 0) {
-          const principalPayment = Math.min(paymentPool, loan.principal);
-          loan.principal -= principalPayment;
-          totalLoanPrincipalPaid += principalPayment;
-          paymentPool -= principalPayment;
-        }
+        const principalPayment = Math.min(paymentPool, loan.principal);
+        loan.principal -= principalPayment;
+        totalLoanPrincipalPaid += principalPayment;
+        paymentPool -= principalPayment;
       }
+
       const totalLoanPayment = totalLoanInterestPaid + totalLoanPrincipalPaid;
 
       // 적금, 소비, 가용금액 계산
@@ -188,6 +203,9 @@ export const generateProjection = async (profileId: string) => {
         0
       );
 
+      const totalAssets =
+        cumulativeSavings + currentRealEstateValue - remainingLoanPrincipal;
+
       // --- 5. 결과 배열에 월별 데이터 추가 ---
       projection.push({
         year,
@@ -202,6 +220,7 @@ export const generateProjection = async (profileId: string) => {
         remainingLoanPrincipal,
         disposableIncome,
         realEstateValue: currentRealEstateValue,
+        totalAssets,
       });
     }
   }

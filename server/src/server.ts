@@ -81,7 +81,7 @@ app.post("/api/save-profile", async (req, res) => {
       });
     }
 
-     // 💡 추가된 부분: 예측 로직 호출 및 결과 저장
+    // 💡 추가된 부분: 예측 로직 호출 및 결과 저장
     const { projection } = await generateProjection(newProfile.id);
 
     await prisma.projectedData.createMany({
@@ -141,8 +141,26 @@ app.get("/api/profile/:id", async (req, res) => {
       },
     },
   });
-  if (!profile) return res.status(404).json({ message: "프로필 없음" });
-  res.status(200).json(profile);
+  if (!profile || !profile.dob || !profile.retirementAge) {
+    // 필수 데이터가 없으면 오류를 반환하거나 다른 로직을 처리합니다.
+    return res.status(404).json({ message: "프로필 정보가 불충분합니다." });
+  }
+
+  const finalState = profile.projectedData[profile.projectedData.length - 1];
+  const finalSummary = {
+    retirementYear: new Date(profile.dob).getFullYear() + profile.retirementAge,
+    finalSavings: finalState?.cumulativeSavings || 0,
+    finalRealEstateValue: finalState?.realEstateValue || 0,
+    finalAssets:
+      (finalState?.cumulativeSavings || 0) + (finalState?.realEstateValue || 0),
+    finalLiabilities: finalState?.remainingLoanPrincipal || 0,
+    totalInterestPaid: profile.projectedData.reduce(
+      (sum, p) => sum + (p.loanInterestPaid || 0),
+      0
+    ),
+  }; // 💡 수정된 부분: 응답에 profile과 summary를 함께 포함
+
+  res.status(200).json({ ...profile, summary: finalSummary });
 });
 
 // 모든 프로필 목록 조회

@@ -61,6 +61,7 @@ model ProjectedData {
  endOfYearAssets Float?
  isOverridden  Boolean @default(false)
  realEstateValue Float?
+ totalAssets     Float?
 
  // ✨ 관계 설정
  profileId   String

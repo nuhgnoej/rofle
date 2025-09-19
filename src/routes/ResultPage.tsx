@@ -176,14 +176,37 @@ export default function ResultPage() {
               return (
                 <div key={year}>
                   <h3 className="text-lg font-bold bg-accent text-primary p-2 rounded-t-md">
-                    {year}년
+                    {year}년 (
+                    {profileInputs && profileInputs.dob
+                      ? year - new Date(profileInputs.dob).getFullYear()
+                      : "-"}
+                    세)
                   </h3>
                   <table className="w-full text-sm text-left border-collapse text-secondary">
                     <thead className="bg-accent/50 text-text">
                       <tr>
-                        <th className="p-2 border font-semibold">월</th>
+                        <th
+                          rowSpan={2}
+                          className="p-2 border font-semibold align-middle text-center"
+                        >
+                          월
+                        </th>
+                        <th
+                          colSpan={5}
+                          className="p-2 border font-semibold text-center"
+                        >
+                          월별 현금 흐름
+                        </th>
+                        <th
+                          colSpan={4}
+                          className="p-2 border font-semibold text-center"
+                        >
+                          월말 자산 및 부채
+                        </th>
+                      </tr>
+                      <tr>
                         <th className="p-2 border font-semibold text-right">
-                          월 총수입
+                          총 수입
                         </th>
                         <th className="p-2 border font-semibold text-right text-danger">
                           상환 이자
@@ -194,19 +217,20 @@ export default function ResultPage() {
                         <th className="p-2 border font-semibold text-right">
                           월 소비금액
                         </th>
-                        <th className="p-2 border font-semibold text-right text-primary">
-                          누적 적금액
+                        <th className="p-2 border font-semibold text-right text-success">
+                          월 가용금액
                         </th>
-                        {/* --- [추가] 부동산 가액 헤더 --- */}
+                        <th className="p-2 border font-semibold text-right text-success">
+                          총 대출 잔액
+                        </th>
                         <th className="p-2 border font-semibold text-right text-success">
                           부동산 가액
                         </th>
-                        {/* --- [추가] 총 자산 헤더 --- */}
                         <th className="p-2 border font-semibold text-right text-success">
-                          총 자산
+                          누적 적금액
                         </th>
                         <th className="p-2 border font-semibold text-right text-success">
-                          월 가용금액
+                          총 자산
                         </th>
                       </tr>
                     </thead>
@@ -221,7 +245,7 @@ export default function ResultPage() {
                           }`}
                         >
                           <td className="p-2 border">{monthData.month}월</td>
-                          <td className="p-2 border">
+                          <td className="p-2 border text-right">
                             <input
                               type="number"
                               defaultValue={Math.round(
@@ -244,7 +268,7 @@ export default function ResultPage() {
                           <td className="p-2 border text-right">
                             {formatCurrency(monthData.loanPrincipalPaid)}
                           </td>
-                          <td className="p-2 border">
+                          <td className="p-2 border text-right">
                             <input
                               type="number"
                               defaultValue={Math.round(
@@ -262,18 +286,30 @@ export default function ResultPage() {
                             />
                           </td>
                           <td className="p-2 border text-right">
-                            {formatCurrency(monthData.cumulativeSavings)}
+                            {formatCurrency(monthData.disposableIncome)}
                           </td>
-                          {/* --- [추가] 부동산 가액 셀 --- */}
+                          <td className="p-2 border text-right">
+                            <span
+                              style={{
+                                color:
+                                  (monthData.remainingLoanPrincipal || 0) > 0
+                                    ? "red"
+                                    : "green",
+                              }}
+                            >
+                              {formatCurrency(
+                                monthData.remainingLoanPrincipal || 0
+                              )}
+                            </span>
+                          </td>
                           <td className="p-2 border text-right">
                             {formatCurrency(monthData.realEstateValue)}
                           </td>
-                          {/* --- [추가] 총 자산 셀 --- */}
                           <td className="p-2 border text-right">
-                            {formatCurrency(monthData.totalAssets)}
+                            {formatCurrency(monthData.cumulativeSavings)}
                           </td>
                           <td className="p-2 border text-right">
-                            {formatCurrency(monthData.disposableIncome)}
+                            {formatCurrency(monthData.totalAssets)}
                           </td>
                         </tr>
                       ))}
