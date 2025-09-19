@@ -15,6 +15,8 @@ export default function LoanForm() {
         principal: 0,
         interestRate: 0,
         termInYears: 0,
+        gracePeriodInYears: 0,
+        paymentMethod: "",
       },
     ];
     setProfileData({ loans: newLoans });
@@ -25,16 +27,20 @@ export default function LoanForm() {
     setProfileData({ loans: newLoans });
   };
 
-  const handleLoanChange = (
-    id: string,
-    field: "name" | "type" | "principal" | "interestRate" | "termInYears",
-    value: string
-  ) => {
+  const handleLoanChange = (id: string, field: keyof Loan, value: string) => {
     const newLoans = loans.map((loan) => {
       if (loan.id === id) {
-        // ✨ name과 type 필드는 문자열로, 나머지는 숫자로 처리합니다.
-        const updatedValue =
-          field === "name" || field === "type" ? value : parseFloat(value) || 0;
+        let updatedValue: string | number = value;
+
+        if (
+          field === "principal" ||
+          field === "interestRate" ||
+          field === "termInYears" ||
+          field === "gracePeriodInYears"
+        ) {
+          updatedValue = parseFloat(value) || 0;
+        }
+
         return { ...loan, [field]: updatedValue };
       }
       return loan;
@@ -98,16 +104,18 @@ export default function LoanForm() {
                 >
                   대출 유형{" "}
                 </label>{" "}
-                <input
+                <select
                   id={`loan_type_${loan.id}`}
-                  type="text"
                   value={loan.type || ""}
                   onChange={(e) =>
                     handleLoanChange(loan.id, "type", e.target.value)
                   }
-                  placeholder="MORTGAGE"
-                  className="w-full text-sm p-2 rounded-md border"
-                />{" "}
+                  className="w-full text-sm p-2 rounded-md border bg-background"
+                >
+                  <option value="신용 대출">신용 대출</option>
+                  <option value="담보 대출">담보 대출</option>
+                  <option value="기타 대출">기타 대출</option>
+                </select>
               </div>
               <div>
                 <label
@@ -145,6 +153,71 @@ export default function LoanForm() {
                   placeholder="5.5"
                   className="w-full text-sm p-2 rounded-md border"
                 />
+              </div>
+              <div>
+                <label
+                  htmlFor={`loan_term_${loan.id}`}
+                  className="block text-sm font-medium text-secondary mb-1"
+                >
+                  대출기간 (년)
+                </label>
+                <input
+                  id={`loan_term_${loan.id}`}
+                  type="number"
+                  value={loan.termInYears || ""}
+                  onChange={(e) =>
+                    handleLoanChange(loan.id, "termInYears", e.target.value)
+                  }
+                  placeholder="0"
+                  className="w-full text-sm p-2 rounded-md border"
+                />
+              </div>
+              {/* 💡 거치기간 입력 필드 추가 */}
+              <div>
+                <label
+                  htmlFor={`loan_grace_period_${loan.id}`}
+                  className="block text-sm font-medium text-secondary mb-1"
+                >
+                  거치기간 (년)
+                </label>
+                <input
+                  id={`loan_grace_period_${loan.id}`}
+                  type="number"
+                  value={loan.gracePeriodInYears || ""}
+                  onChange={(e) =>
+                    handleLoanChange(
+                      loan.id,
+                      "gracePeriodInYears",
+                      e.target.value
+                    )
+                  }
+                  placeholder="0"
+                  className="w-full text-sm p-2 rounded-md border"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor={`loan_method_${loan.id}`}
+                  className="block text-sm font-medium text-secondary mb-1"
+                >
+                  상환방식
+                </label>
+                <select
+                  id={`loan_method_${loan.id}`}
+                  value={loan.paymentMethod || ""}
+                  onChange={(e) =>
+                    handleLoanChange(loan.id, "paymentMethod", e.target.value)
+                  }
+                  className="w-full text-sm p-2 rounded-md border bg-background"
+                >
+                  <option value="">선택</option>
+                  <option value="원리금균등">원리금균등</option>
+                  <option value="원금균등">원금균등</option>
+                  <option value="만기일시">만기일시</option>
+                  <option value="자유상환(모델자동계산)">
+                    자유상환(모델자동계산)
+                  </option>
+                </select>
               </div>
             </div>
           </div>

@@ -1,9 +1,17 @@
 // src/types.ts
 
+export interface FamilyMember {
+  name: string;
+  age: number;
+  relationship: string;
+}
+
 // 서버에서 받아오는 원본 데이터 타입
 export interface ProfileData {
   id: string;
   dob: string;
+  name: string;
+  familyMembers: FamilyMember[];
   retirementAge: number;
   monthlyIncomes: {
     id: string;
@@ -94,6 +102,8 @@ export type Loan = {
   principal: number;
   interestRate: number;
   termInYears: number;
+  gracePeriodInYears?: number;
+  paymentMethod: string;
 };
 
 export interface RealEstateAsset {

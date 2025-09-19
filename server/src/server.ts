@@ -42,6 +42,8 @@ app.post("/api/save-profile", async (req, res) => {
         monthlyRepayment: parseNumber(profileData.monthlyRepayment),
         monthlyInsurance: parseNumber(profileData.monthlyInsurance),
         monthlySavings: parseNumber(profileData.monthlySavings),
+        name: profileData.name,
+        familyMembers: profileData.familyMembers,
       },
     });
 
@@ -66,6 +68,8 @@ app.post("/api/save-profile", async (req, res) => {
           principal: parseFloat(loan.principal),
           interestRate: parseFloat(loan.interestRate),
           termInYears: parseFloat(loan.termInYears),
+          gracePeriodInYears: parseNumber(loan.gracePeriodInYears),
+          paymentMethod: loan.paymentMethod,
           profileId: newProfile.id,
         })),
       });
@@ -81,7 +85,6 @@ app.post("/api/save-profile", async (req, res) => {
       });
     }
 
-    // 💡 추가된 부분: 예측 로직 호출 및 결과 저장
     const { projection } = await generateProjection(newProfile.id);
 
     await prisma.projectedData.createMany({

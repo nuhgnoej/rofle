@@ -3,10 +3,10 @@ import { useFormStore } from "../stores/form.store";
 
 const TABS = [
   { path: "/new", name: "미래 계획" },
-  { path: "/new/income", name: "수입" },
-  { path: "/new/expenses", name: "지출" },
-  { path: "/new/loans", name: "대출" },
   { path: "/new/assets", name: "자산" },
+  { path: "/new/loans", name: "대출" },  
+  { path: "/new/income", name: "수입" },
+  { path: "/new/expenses", name: "지출" },  
 ];
 
 export default function InputPage() {

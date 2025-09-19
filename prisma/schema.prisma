@@ -22,6 +22,10 @@ model FinancialProfile {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
   
+  // 이름과 가족 정보
+  name                    String?
+  familyMembers           Json?
+
   // 미래 계획
   dob                        DateTime? // 생년월일
   retirementAge              Int?      // 정년
@@ -35,6 +39,8 @@ model FinancialProfile {
   monthlySavings             Float?          // 월별 적금
   monthlyRepayment           Float?          // 월별 원리금 상환액
   
+  summary                 Json?
+
   // 관계 설정
   monthlyIncomes             MonthlyIncome[] // 1:N 관계 (한 프로필에 여러 월별 수입)
   loans                      Loan[]          // 1:N 관계 (한 프로필에 여러 대출)
@@ -61,7 +67,7 @@ model ProjectedData {
  endOfYearAssets Float?
  isOverridden  Boolean @default(false)
  realEstateValue Float?
- totalAssets     Float?
+ totalAssets     Float? 
 
  // ✨ 관계 설정
  profileId   String
@@ -87,11 +93,13 @@ model MonthlyIncome {
 // --- 대출 정보 모델 ---
 model Loan {
   id                  String   @id @default(cuid())
-  name         String?  // ✨ 추가: 대출 이름
- type         String?  // ✨ 추가: 대출 종류
+  name         String?  // 대출 이름
+  type         String?  // 대출 종류
   principal           Float    // 대출 원금
   interestRate        Float    // 연이율
-  termInYears     Int?   // ✨ 추가: 대출 기간 (연 단위)
+  termInYears     Int?   // 대출 기간 (연 단위)  
+  gracePeriodInYears Int? // 거치기간 추가
+  paymentMethod String? // 예: '원리금균등', '원금균등', '만기일시'
   
   // 관계 설정
   profileId           String

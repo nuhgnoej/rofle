@@ -10,8 +10,10 @@ interface FormState extends ProfileData {
 
 // 폼 필드의 초기 상태
 const initialState: Omit<ProfileData, "id" | "overrides"> = {
+  name: "",
+  familyMembers: [],
   dob: "",
-  retirementAge: 60,
+  retirementAge: 65,
   monthlyIncomes: Array.from({ length: 12 }, (_, i) => ({
     id: `${i}`,
     month: i + 1,
@@ -26,6 +28,7 @@ const initialState: Omit<ProfileData, "id" | "overrides"> = {
       principal: 0,
       interestRate: 0,
       termInYears: 0,
+      paymentMethod: ""
     },
   ],
   realEstateAssets: [],
