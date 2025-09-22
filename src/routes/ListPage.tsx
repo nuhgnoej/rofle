@@ -72,7 +72,7 @@ export default function ListPage() {
           to="/new"
           className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
         >
-          + 새 프로필 작성
+          + 새 재무 프로필 작성
         </Link>
       </div>
 

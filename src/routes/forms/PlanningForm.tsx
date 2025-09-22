@@ -1,7 +1,10 @@
 import { useFormStore } from "../../stores/form.store";
 import React from "react";
 
-type NumberFields = 'retirementAge' | 'peakWagePeriod' | 'peakWageReductionRate';
+type NumberFields =
+  | "retirementAge"
+  | "peakWagePeriod"
+  | "peakWageReductionRate";
 
 export default function PlanningForm() {
   const {
@@ -20,7 +23,7 @@ export default function PlanningForm() {
 
   const handleNumberChange = (field: NumberFields, value: string) => {
     setProfileData({ [field]: parseInt(value, 10) || 0 });
-};
+  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileData({ name: e.target.value });
@@ -63,7 +66,7 @@ export default function PlanningForm() {
             type="text"
             value={name || ""}
             onChange={handleNameChange}
-            className="w-full text-sm p-2 rounded-md bg-background border"
+            className="w-full text-sm p-2 rounded-md bg-background border text-text"
           />{" "}
         </div>{" "}
       </div>{" "}
@@ -80,7 +83,7 @@ export default function PlanningForm() {
               onChange={(e) =>
                 handleFamilyMemberChange(index, "name", e.target.value)
               }
-              className="w-1/3 text-sm p-2 rounded-md bg-background border"
+              className="w-1/3 text-sm p-2 rounded-md bg-background border text-text"
             />{" "}
             <input
               type="number"
@@ -89,7 +92,7 @@ export default function PlanningForm() {
               onChange={(e) =>
                 handleFamilyMemberChange(index, "age", parseInt(e.target.value))
               }
-              className="w-1/3 text-sm p-2 rounded-md bg-background border"
+              className="w-1/3 text-sm p-2 rounded-md bg-background border text-text"
             />{" "}
             <input
               type="text"
@@ -98,7 +101,7 @@ export default function PlanningForm() {
               onChange={(e) =>
                 handleFamilyMemberChange(index, "relationship", e.target.value)
               }
-              className="w-1/3 text-sm p-2 rounded-md bg-background border"
+              className="w-1/3 text-sm p-2 rounded-md bg-background border text-text"
             />{" "}
           </div>
         ))}{" "}
@@ -125,7 +128,7 @@ export default function PlanningForm() {
             type="date"
             value={dob}
             onChange={handleDateChange}
-            className="w-full text-sm p-2 rounded-md bg-background border"
+            className="w-full text-sm p-2 rounded-md bg-background border text-text"
           />{" "}
         </div>{" "}
         <div>
@@ -143,7 +146,7 @@ export default function PlanningForm() {
             onChange={(e) =>
               handleNumberChange("retirementAge", e.target.value)
             }
-            className="w-full text-sm p-2 rounded-md bg-background border"
+            className="w-full text-sm p-2 rounded-md bg-background border text-text"
           />{" "}
         </div>{" "}
         <div>
@@ -161,7 +164,7 @@ export default function PlanningForm() {
             onChange={(e) =>
               handleNumberChange("peakWagePeriod", e.target.value)
             }
-            className="w-full text-sm p-2 rounded-md bg-background border"
+            className="w-full text-sm p-2 rounded-md bg-background border text-text"
           />{" "}
         </div>{" "}
         <div>
@@ -179,7 +182,7 @@ export default function PlanningForm() {
             onChange={(e) =>
               handleNumberChange("peakWageReductionRate", e.target.value)
             }
-            className="w-full text-sm p-2 rounded-md bg-background border"
+            className="w-full text-sm p-2 rounded-md bg-background border text-text"
           />{" "}
         </div>{" "}
       </div>{" "}

@@ -7,19 +7,6 @@ import type {
   Loan,
 } from "../types";
 
-// 💡 새로운 타입: 오버라이드 데이터
-// interface OverrideData {
-//   income: number | null;
-//   monthlyConsumption: number | null;
-// }
-
-// 💡 새로운 타입: 연도별 오버라이드
-// interface YearlyOverrides {
-//   [year: number]: {
-//     [month: number]: OverrideData;
-//   };
-// }
-
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "-";
   return Math.round(value).toLocaleString();
@@ -28,7 +15,6 @@ const formatCurrency = (value: number | null | undefined) => {
 export default function ResultPage() {
   const { id } = useParams<{ id: string }>();
 
-  // 💡 상태 변수 변경: ProfileWithProjection 타입 사용
   const [profileData, setProfileData] = useState<ProfileWithProjection | null>(
     null
   );
@@ -63,8 +49,6 @@ export default function ResultPage() {
     field: "income" | "monthlyConsumption",
     value: string
   ) => {
-    // 💡 오버라이드 로직은 백엔드에서 처리하므로, 여기서는 단순히 HTTP 요청을 보냅니다.
-    // 이 로직은 백엔드 API가 준비되면 구현할 수 있습니다. 현재는 그대로 유지합니다.
     alert("아직 구현 중...");
     console.log(year, month, field, value);
   };
@@ -80,18 +64,34 @@ export default function ResultPage() {
   if (!profileData)
     return <div className="text-center p-10">표시할 데이터가 없습니다.</div>;
 
-  // 💡 데이터 가공: 월별 총합 데이터를 연도별로 그룹화
-  const yearlyData = profileData.projectedData.reduce((acc, cur) => {
-    (acc[cur.year] = acc[cur.year] || []).push(cur);
-    return acc;
-  }, {} as Record<number, MonthlyData[]>);
-
   // 💡 데이터 가공: 월별 개별 대출 상태 데이터를 연도, 월별로 그룹화
   const yearlyLoanData = profileData.projectedLoanStates.reduce((acc, cur) => {
     acc[cur.year] = acc[cur.year] || {};
     (acc[cur.year][cur.month] = acc[cur.year][cur.month] || []).push(cur);
     return acc;
   }, {} as Record<number, Record<number, ProjectedLoanState[]>>);
+
+  // 💡 데이터 가공: 월별 총합 데이터를 연도별로 그룹화하고, 상환 합계 계산
+  const yearlyData = profileData.projectedData.reduce((acc, cur) => {
+    const loanStatesForMonth = yearlyLoanData[cur.year]?.[cur.month] || [];
+    const loanInterestPaidTotal = loanStatesForMonth.reduce(
+      (sum, loan) => sum + loan.interestPaid,
+      0
+    );
+    const loanPrincipalPaidTotal = loanStatesForMonth.reduce(
+      (sum, loan) => sum + loan.principalPaid,
+      0
+    );
+
+    const monthlyDataWithTotals: MonthlyData = {
+      ...cur,
+      loanInterestPaidTotal,
+      loanPrincipalPaidTotal,
+    };
+
+    (acc[cur.year] = acc[cur.year] || []).push(monthlyDataWithTotals);
+    return acc;
+  }, {} as Record<number, MonthlyData[]>);
 
   const loanMap = new Map<string, Loan>();
   profileData.loans.forEach((loan) => loanMap.set(loan.id, loan));

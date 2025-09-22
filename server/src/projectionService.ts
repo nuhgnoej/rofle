@@ -6,7 +6,6 @@ import {
   calculateEqualPrincipal,
   calculateBulletPrincipal,
 } from "./loanCalculator";
-import type { Loan } from "../../src/types";
 
 const prisma = new PrismaClient();
 
@@ -34,9 +33,9 @@ interface MonthlyData {
   year: number;
   month: number;
   income: number;
-  bonus: number; // 💡 제거된 필드: loanInterestPaid, loanPrincipalPaid, totalLoanPayment
+  bonus: number;
   monthlyConsumption: number;
-  cumulativeSavings: number; // 💡 제거된 필드: remainingLoanPrincipal
+  cumulativeSavings: number;
   disposableIncome: number;
   realEstateValue: number;
   totalAssets: number;
@@ -52,7 +51,7 @@ interface ProjectedLoanStateData {
   remainingPrincipal: number;
   profileId: string;
   loanId: string;
-  projectedDataId?: string; // 임시로 정의, 추후 확정
+  projectedDataId?: string;
 }
 
 /**
@@ -77,7 +76,7 @@ export const generateProjection = async (profileId: string) => {
     today.getFullYear() - new Date(profile.dob).getFullYear();
 
   const salaryInflationRate = (profile.salaryInflationRate || 0) / 100;
-  const REAL_ESTATE_APPRECIATION_RATE = 0.02; // 💡 loanStates에 잔여 원금 필드를 추가하고 이자율 순으로 정렬
+  const REAL_ESTATE_APPRECIATION_RATE = 0.02;
 
   let loanStates: LoanState[] = profile.loans
     .map((l) => ({
